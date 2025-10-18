@@ -2,7 +2,7 @@ import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-
+//=============================register===========================//
 export const register = async (req, res) => {
 
     try {
@@ -46,7 +46,7 @@ export const register = async (req, res) => {
     }
 };
 
-
+   //=============================login===========================//
 
 export const login = async (req, res) => {
 
@@ -102,7 +102,7 @@ export const login = async (req, res) => {
       }
 
     
-     return res.status(200).cookie("token", token,{maxAge:1*24*60*60*1000, httponly:true, sameSite: strict,
+     return res.status(200).cookie("token", token,{maxAge:1*24*60*60*1000, httponly:true, sameSite: "Strict",
 
      })
      .json({ message: `welcome back ${user.fullname}`, user,
@@ -119,7 +119,7 @@ export const login = async (req, res) => {
     }
 };
 
-
+//=============================logout===========================//
 export const logout = async (req, res) => {
 
     try {
@@ -136,11 +136,61 @@ export const logout = async (req, res) => {
     }
 };
 
+//=============================update_user===========================//
 
 export const updateProfile = async (req, res) => {
     try {
+        const { fullname, phoneNumber, bio, skills,email } = req.body;
+        const file = req.file;
+          if (!fullname || !email ||!phoneNumber ||!bio ||!skills) {
+            return res.status(400).json({ message: "All fields are required field is missing" ,
+                success: false,
+            });
+        }
+
+        //cloudinary upload
+
+
+
+
+
+
+
+        const skillsArray = skills.split(',');
+        const userId = req.user._id;     // middleware to get user id from token
+        let user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found",
+                success: false,
+            });
+
+        }
+        
+            user.fullname = fullname;
+            user.email = email;
+            user.phoneNumber = phoneNumber;
+            user.bio = bio;
+            user.skills = skillsArray;
+
+            await user.save();
+
+        user ={
+        _id: user._id,
+        fullname: user.fullname,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        profile: user.profile,
+      }
+      return res.status(200).json({ message: "User updated successfully", user,
+            success: true,
+        });
         
     } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error updating user failed",
+            success: false,
+        });
         
     }
 };

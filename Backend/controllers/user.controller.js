@@ -4,193 +4,193 @@ import jwt from "jsonwebtoken";
 
 //=============================register===========================//
 export const register = async (req, res) => {
-
     try {
-        const { fullname, email, phoneNumber } = req.body;
-        if (!fullname || !email ||!phoneNumber) {
-            return res.status(400).json({ message: "All fields are required field is missing" ,
-                success: false,
-                error: error.message
-            });
+        const { fullname, email, phoneNumber, password, role } = req.body;
 
+        if (!fullname || !email || !phoneNumber || !password || !role) {
+            return res.status(400).json({
+                message: "All fields are required",
+                success: false,
+            });
         }
+
         const userExists = await User.findOne({ email });
         if (userExists) {
-            return res.status(400).json({ message: "Email already exists",
+            return res.status(400).json({
+                message: "Email already exists",
                 success: false,
-                error: error.message
             });
         }
-    
-     ///convert pass to hashhhh
-     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
-     // create a new user
-     const newUser = new User({ fullname, email, phoneNumber, password: hashedPassword, role });
-     await newUser.save();
-     res.status(201).json({ message: "User registered successfully",
-        success: true,
-        user: newUser
-     });
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-     return res.status(200).json({ message: `Acount created successfully ${fullname}`,
-        success: true,
-     })
+        const newUser = new User({
+            fullname,
+            email,
+            phoneNumber,
+            password: hashedPassword,
+            role,
+        });
+
+        await newUser.save();
+
+        return res.status(201).json({
+            message: "User registered successfully",
+            success: true,
+            user: newUser,
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Server error registering failed",
+        res.status(500).json({
+            message: "Server error while registering",
             success: false,
-            error: error.message
+            error: error.message,
         });
-        
     }
 };
 
-   //=============================login===========================//
+
+//=============================login===========================//
 
 export const login = async (req, res) => {
-
     try {
-
-        // get user by email
         const { email, password, role } = req.body;
-        if (!email ||!password ||!role) {
-            return res.status(400).json({ message: "All fields are required field is missing",
+
+        if (!email || !password || !role) {
+            return res.status(400).json({
+                message: "All fields are required",
                 success: false,
-                error: error.message
             });
         }
 
-        // find user by email
-        let  user = await User.findOne({ email });
+        let user = await User.findOne({ email });
         if (!user) {
-            return res.status(404).json({ message: "User not found, incorrect email or password",
+            return res.status(404).json({
+                message: "User not found",
                 success: false,
-                error: error.message
             });
         }
 
-        // compare password  with hashed password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ message: "Invalid password",
+            return res.status(400).json({
+                message: "Invalid password",
                 success: false,
-                error: error.message
             });
         }
 
-
-        // check if role is correct
-        if (user.role!== role) {
-            return res.status(401).json({ message: "Unauthorized access role is not match",
+        if (user.role !== role) {
+            return res.status(401).json({
+                message: "Unauthorized access - role mismatch",
                 success: false,
-                error: error.message
             });
         }
 
+        const tokenData = { userId: user._id };
+        const token = jwt.sign(tokenData, process.env.JWT_SECRET, { expiresIn: "1d" });
 
-        // // generate jwt token
-      const token = await jwt.sign(tokenData, process.env.JWT_SECRET, { expiresIn: '1d', });
-
-      user ={
-        _id: user._id,
-        fullname: user.fullname,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        role: user.role,
-        profile: user.profile,
-      }
-
-    
-     return res.status(200).cookie("token", token,{maxAge:1*24*60*60*1000, httponly:true, sameSite: "Strict",
-
-     })
-     .json({ message: `welcome back ${user.fullname}`, user,
-        success: true,
-        
-     });
-        
+        res
+            .status(200)
+            .cookie("token", token, {
+                maxAge: 24 * 60 * 60 * 1000,
+                httpOnly: true,
+                sameSite: "Strict",
+            })
+            .json({
+                message: `Welcome back ${user.fullname}`,
+                success: true,
+                user,
+            });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Server error login failed",
+        res.status(500).json({
+            message: "Server error during login",
             success: false,
-            error: error.message
+            error: error.message,
         });
     }
 };
+
 
 //=============================logout===========================//
 export const logout = async (req, res) => {
-
     try {
-        return res.status(200).Cookie("token", "", { maxAge: 0,}).json({ message: "Logged out successfully", 
-            success: true,
-        });
+        return res
+            .status(200)
+            .cookie("token", "", { maxAge: 0 })
+            .json({
+                message: "Logged out successfully",
+                success: true,
+            });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Server error logout failed",
+        res.status(500).json({
+            message: "Server error during logout",
             success: false,
-            error: error.message
+            error: error.message,
         });
-        
     }
 };
+
 
 //=============================update_user===========================//
 
 export const updateProfile = async (req, res) => {
     try {
-        const { fullname, phoneNumber, bio, skills,email } = req.body;
-        const file = req.file;
-          if (!fullname || !email ||!phoneNumber ||!bio ||!skills) {
-            return res.status(400).json({ message: "All fields are required field is missing" ,
-                success: false,
-            });
+        const { fullname, phoneNumber, bio, skills, email } = req.body;
+        // if (!fullname || !email || !phoneNumber || !bio || !skills) {
+        //   return res.status(400).json({
+        //     message: "All fields are required",
+        //     success: false,
+        //   });
+        // }
+        let skillsArray;
+        if (skills) {
+            const skillsArray = skills.split(",");
         }
-
-        //cloudinary upload
-
-
-
-
-
-
-
-        const skillsArray = skills.split(',');
-        const userId = req.user._id;     // middleware to get user id from token
+        const userId = req.id; //  from middleware
         let user = await User.findById(userId);
+
         if (!user) {
-            return res.status(404).json({ message: "User not found",
+            return res.status(404).json({
+                message: "User not found",
                 success: false,
             });
-
         }
-        
-            user.fullname = fullname;
-            user.email = email;
-            user.phoneNumber = phoneNumber;
-            user.bio = bio;
-            user.skills = skillsArray;
 
-            await user.save();
 
-        user ={
-        _id: user._id,
-        fullname: user.fullname,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        role: user.role,
-        profile: user.profile,
-      }
-      return res.status(200).json({ message: "User updated successfully", user,
+        // update  database fields
+
+        if (fullname) { user.fullname = fullname; }
+
+        if (email) { user.email = email; }
+
+        if (phoneNumber) { user.phoneNumber = phoneNumber; }
+
+        if (bio) { user.profile.bio = bio; }
+
+        if (skills) { user.profile.skills = skillsArray; }
+
+
+
+        if (fullname) user.fullname = fullname;
+        if (email) user.email = email;
+        if (phoneNumber) user.phoneNumber = phoneNumber;
+        if (bio) user.profile.bio = bio;
+
+        await user.save();
+
+        return res.status(200).json({
+            message: "Profile updated successfully",
             success: true,
+            user,
         });
-        
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Server error updating user failed",
+        res.status(500).json({
+            message: "Server error updating profile",
             success: false,
+            error: error.message,
         });
-        
     }
 };

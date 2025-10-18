@@ -22,8 +22,7 @@ const userSchema = new mongoose.Schema({
     role:{
         type:String,
         required:true,
-        unique:true,
-        enum:['Student','Recruiter'],
+        enum:['student','recruiter'],
         default:'Student',
     },
     profile:{
@@ -38,7 +37,7 @@ const userSchema = new mongoose.Schema({
         
 
         },
-        resumeOriginalNamee:{
+        resumeOriginalName:{
             type:String,
 
         },
